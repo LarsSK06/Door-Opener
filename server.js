@@ -20,7 +20,7 @@ app.post("/login", (request, response) => {
         });
         return;
     }
-
+    
     clickEpoch = getEpoch();
     onCooldown = true;
     setTimeout(() => onCooldown = false, cooldown * 1000);
