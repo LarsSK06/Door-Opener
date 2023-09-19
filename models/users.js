@@ -11,10 +11,11 @@ module.exports = class Users extends Model{
             },
             enabled: {
                 type: DataTypes.BOOLEAN
-            }
+            },
+            isAdmin: {type:  DataTypes.BOOLEAN }
         },
         {
-            tableName: "users",
+            tableName: "Users",
             sequelize
         })
     }
