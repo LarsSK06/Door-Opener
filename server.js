@@ -15,12 +15,19 @@ app.post("/login", (request, response) => {
     if(onCooldown){
         response.status(401).send({
             code: 401,
-            message: "On cooldown",
+            message: `On cooldown (${limitDec((clickEpoch + 10) - getEpoch(), 1)}s left)`,
             abbr: "oc"
         });
         return;
     }
-    
+    if(request.headers.authorization != process.env.authorization){
+        response.status(401).send({
+            code: 401,
+            message: "Invalid authorization header",
+            abbr: "iah"
+        });
+        return;
+    }
     clickEpoch = getEpoch();
     onCooldown = true;
     setTimeout(() => onCooldown = false, cooldown * 1000);
@@ -49,4 +56,9 @@ app.listen(port, "0.0.0.0", () => {
 
 function getEpoch(){
     return new Date() / 1000;
+}
+
+function limitDec(num, dec){
+    const multiplier = 10 ** dec;
+    return Math.floor(num * multiplier) / multiplier;
 }
