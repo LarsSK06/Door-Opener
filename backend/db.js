@@ -1,13 +1,13 @@
 const Sequelize = require('sequelize')
 const bcrypt = require('bcrypt')
-const Users = require('../models/Users')
+const Users = require('../models/users')
 class DataBaseManager {
     constructor() {
         this.sequelize = new Sequelize({
             dialect: 'sqlite',
             storage: './backend/database.sqlite', // Replace with the path to your SQLite database file
         })
-        this.initTables()
+        this.initTables() // init all models
         this.sequelize.sync()
             .then(() => {
                 console.log('Tables created successfully!')
@@ -56,7 +56,6 @@ class DataBaseManager {
     
     initTables() {
         Users.init(this.sequelize)
-        ButtonClick.init(this.sequelize)
     }  
 }
 
