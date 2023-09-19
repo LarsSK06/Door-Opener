@@ -1,6 +1,10 @@
-const Sequelize = require('sequelize')
+const {Sequelize}= require('sequelize')
 const bcrypt = require('bcrypt')
+const expressSession = require('express-session');
+const SessionStore = require('express-session-sequelize')(expressSession.Store);
+
 const Users = require('../models/users')
+const Session = require("../models/Session.js")
 class DataBaseManager {
     constructor() {
         this.sequelize = new Sequelize({
@@ -51,11 +55,15 @@ class DataBaseManager {
         }) 
     }
     store() {
-        return false
+        return new SessionStore({
+            db: this.sequelize
+        });
     }
     
     initTables() {
         Users.init(this.sequelize)
+        Session.init(this.sequelize)
+        Session.sync(this.db)
     }  
 }
 
