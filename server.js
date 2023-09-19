@@ -7,9 +7,6 @@ app.disable("x-powered-by");
 app.use(cors());
 app.use(express.json());
 
-let onCooldown = false;
-const cooldown = 30;
-let clickEpoch = 0;
 
 app.post("/login", (request, response) => {
     if(onCooldown){
@@ -46,7 +43,3 @@ const port = 4000;
 app.listen(port, "0.0.0.0", () => {
     console.log(`API active on :${port}`);
 });
-
-function getEpoch(){
-    return new Date() / 1000;
-}
