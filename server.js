@@ -1,9 +1,24 @@
+const session = require('express-session')
+const SessionStore = require('express-session-sequelize')(session.Store);
+const cookieParser = require('cookie-parser');
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const https = require('https');
+const DataBaseManager = require('./backend/db');
+const DBManager = new DataBaseManager
 const app = express();
 app.disable("x-powered-by");
+
+
+// Middleware. Basically what functions pass while user gets routed
+app.use(session({
+    store: DBManager.store(),
+    secret: "our-secret",
+    resave: true,
+    saveUninitialized: false,
+    cookie: {}
+}))
 app.use(cors());
 app.use(express.json());
 
@@ -40,6 +55,7 @@ app.post("/login", (request, response) => {
 });
 
 app.all("*", (request, response) => {
+    console.log(request.session)
     if(fs.existsSync(`frontend${request.url}`) && request.method == "GET"){
         response.status(200).sendFile(`${__dirname}/frontend${request.url}`);
         return;
