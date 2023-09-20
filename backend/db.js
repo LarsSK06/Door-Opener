@@ -1,5 +1,4 @@
 const {Sequelize}= require('sequelize')
-const bcrypt = require('bcrypt')
 const expressSession = require('express-session');
 const SessionStore = require('express-session-sequelize')(expressSession.Store);
 
@@ -20,39 +19,14 @@ class DataBaseManager {
                 console.error('Error creating tables:', error)
             })
     }
-    async createAccount(userName, password) {
-        const saltRounds = 10
-        bcrypt.hash(password, saltRounds, (err, hash) => {
-            if (err) {
-                // Handle error
-                // Probably add some kind of logging system to files later
-                return 'Account NOT created!'
-            } else {
-                // Store the hashed password in database
-                Users.create({
-                    name: userName,
-                    password: hash
-                })
-                return 'Account created!'
-            }
+    async createAccount(username, password) {
+        Users.create({
+            name: username,
+            password: hash
         })
     }
     async login(userName, password) {
-        bcrypt.compare(password, await (await Users.findOne({ where: { name:userName } })).password, (err, result) => {
-            if (err) {
-                // Handle error
-                // Probably add some kind of logging system to files later
-                console.log(err)
-            } else if (result) {
-                // Passwords match, proceed with authentication
-                console.log('Authentication successful')
-                return 'Logged in!'
-            } else {
-                // Passwords don't match, authentication failed
-                console.log('Authentication failed')
-                return 'NOT logged in!'
-            }
-        }) 
+        
     }
     store() {
         return new SessionStore({

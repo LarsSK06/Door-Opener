@@ -29,14 +29,12 @@ const isProd = false
 // Certificate
 // TODO : Add the actual credentials. Check Certbot
 function createCredentials() {
-    const privateKey = fs.readFileSync('/etc/privkey.pem', 'utf8');
-    const certificate = fs.readFileSync('/etc/cert.pem', 'utf8');
-    const ca = fs.readFileSync('/etc/chain.pem', 'utf8');
+    const privateKey = fs.readFileSync('./cert/privkey.pem', 'utf8');
+    const certificate = fs.readFileSync('./cert/cert.pem', 'utf8');
     
     return {
         key: privateKey,
         cert: certificate,
-        ca: ca
     };    
 }
 
