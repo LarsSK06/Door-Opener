@@ -5,8 +5,8 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const https = require('https');
-const DataBaseManager = require('./backend/db');
-const DBManager = new DataBaseManager
+let DataBaseManager = require('./backend/db');
+DataBaseManager = new DataBaseManager
 const app = express();
 app.disable("x-powered-by");
 
@@ -53,7 +53,6 @@ app.post("/login", (request, response) => {
 });
 
 app.all("*", (request, response) => {
-    console.log(request.session)
     if(fs.existsSync(`frontend${request.url}`) && request.method == "GET"){
         response.status(200).sendFile(`${__dirname}/frontend${request.url}`);
         return;
