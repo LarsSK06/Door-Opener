@@ -7,6 +7,8 @@ const fs = require("fs");
 const https = require('https');
 let DataBaseManager = require('./backend/db');
 DataBaseManager = new DataBaseManager
+const ArduinoControl = require("./backend/arduinoController")
+const arduino = new ArduinoControl
 const app = express();
 app.disable("x-powered-by");
 
@@ -42,6 +44,26 @@ function createCredentials() {
 
 
 app.post("/login", (request, response) => {
+    DataBaseManager.login(request.body.password).then(user => {
+        if(user === null) {
+            response.status(404).send({
+                code: 404,
+                message: "User not found",
+                abbr: ""
+            });
+            return "This user does not exist"
+        } else if(user.enabled == false) {
+            response.status(401).send({
+                code: 401,
+                message: "User not enabled",
+                abbr: ""
+            });
+            return "User not enabled"
+        }
+        console.log(user.name, ": IS OPENING")
+        arduino.openDoor()
+
+    })
     if(request.headers.authorization != process.env.authorization){
         response.status(401).send({
             code: 401,

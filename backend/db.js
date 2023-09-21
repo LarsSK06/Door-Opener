@@ -25,7 +25,10 @@ class DataBaseManager {
             password: hash
         })
     }
-    async login(userName, password) {
+    async login(password) {
+        return await Users.findOne({where: {
+            password: password
+        }})
         
     }
     store() {
