@@ -19,10 +19,12 @@ class DataBaseManager {
                 console.error('Error creating tables:', error)
             })
     }
-    async createAccount(username, password) { // DO NOT USE USER MADE PASSWORDS
+    async createAccount(username, password, enabled = true, isAdmin = false) { // DO NOT USE USER MADE PASSWORDS
         Users.create({
             name: username,
-            password: hash
+            password: password,
+            enabled: enabled,
+            isAdmin:isAdmin
         })
     }
     async login(password) {
