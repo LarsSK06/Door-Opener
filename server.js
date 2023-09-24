@@ -7,15 +7,29 @@ let DataBaseManager = require('./backend/db');
 let ArduinoControl = require("./backend/arduinoController")
 
 
-const app = express();
-app.disable("x-powered-by");
 
-const port = 4000;
+const port = 4000; // Doesnt really matter for prod
+
+// On/off switches
+const isProd = false
+const arduinoActive = false
+
+// Paths to files
+const filePath = __dirname + "/frontend2" // Public folder
+const mainPage = filePath + "/mainPage.html"
+const loginPage = filePath + "/loginPage.html"
+
+
+
+
 
 // Classes
 DataBaseManager = new DataBaseManager()
 ArduinoControl = new ArduinoControl()
 
+// express settings
+const app = express();
+app.disable("x-powered-by");
 
 // Middleware. Basically what functions pass while user gets routed
 app.use(session({
@@ -30,26 +44,17 @@ app.use(express.json());
 app.use(express.static("frontend2", {extensions:["html", "js", "css"]}))
 app.use(isLoggedIn)
 
-
-function isLoggedIn(req, res, next) {
-    if(req.url == "/login" && req.session.name) {
+// Redirects user
+function isLoggedIn(req, res, next) { 
+    if(req.url == "/login" && req.session.name) { // If logged in and trying to access /login
         res.redirect("/")
     }
-    if(req.session.name == undefined && (req.url !== "/login")) {
+    if(req.session.name == undefined && (req.url !== "/login")) { // If not logged in and trying to access any other page
         res.redirect("/login")
     }
     next()
-  }
+}
 
-
-
-const isProd = false
-const arduinoActive = false
-
-// Paths to files
-const filePath = __dirname + "/frontend2" // Public folder
-const mainPage = filePath + "/mainPage.html"
-const loginPage = filePath + "/loginPage.html"
 
 
 
@@ -75,7 +80,7 @@ app.get("/", (request, response) => { // Main page for opening
 app.get("/login", (request, response) => { // Visual login page
     if(request.session.name) {
     }
-    response.sendFile(__dirname + "/frontend2/loginPage.html")
+    response.sendFile(loginPage)
 })
 
 app.post("/login", (request, response) => { // Login action
