@@ -31,7 +31,11 @@ class DataBaseManager {
         return await Users.findOne({where: {
             password: password
         }})
-        
+    }
+    async findByName(name) {
+        return await Users.findOne({where: {
+            name: name
+        }})
     }
     store() {
         return new SessionStore({
