@@ -1,5 +1,5 @@
 
-const ip = "http://127.0.0.1:4000";
+const ip = "http://127.0.0.1:80";
 const port = 4000;
 window.addEventListener("load", () => {
     document.querySelector("#login-form").addEventListener("submit", (event) => {
