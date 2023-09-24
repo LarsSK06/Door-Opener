@@ -1,5 +1,4 @@
 const session = require('express-session')
-const SessionStore = require('express-session-sequelize')(session.Store);
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
@@ -47,7 +46,14 @@ function isLoggedIn(req, res, next) {
 const isProd = false
 const arduinoActive = false
 
-// Certificate
+// Paths to files
+const filePath = __dirname + "/frontend2" // Public folder
+const mainPage = filePath + "/mainPage.html"
+const loginPage = filePath + "/loginPage.html"
+
+
+
+// Certificate for https
 function createCredentials() {
     try {
     const privateKey = fs.readFileSync('./certs/private.key', 'utf8');
@@ -61,18 +67,18 @@ function createCredentials() {
 
 
 // Routing
-app.get("/", (request, response) => {
+app.get("/", (request, response) => { // Main page for opening
     console.log(request.session.name ? request.session.name : "Someone", "connected")
-    response.sendFile(__dirname+"/frontend2/mainPage.html")
+    response.sendFile(mainPage)
 })
 
-app.get("/login", (request, response) => {
+app.get("/login", (request, response) => { // Visual login page
     if(request.session.name) {
     }
     response.sendFile(__dirname + "/frontend2/loginPage.html")
 })
 
-app.post("/login", (request, response) => {
+app.post("/login", (request, response) => { // Login action
     DataBaseManager.login(request.body.password).then(login => {
         if (login === null) {
             response.status(404).send({
@@ -92,19 +98,19 @@ app.post("/login", (request, response) => {
     })
 });
 
-
-app.get("/panel", (request, response) => {
-    response.status(200).sendFile("./mainPage.html");
+// TODO : Add admin panel
+app.get("/panel", (request, response) => { // Admin panel
+    response.status(200).sendFile(mainPage);
 })
 
-app.post("/open", async (request, response) => {
+app.post("/open", async (request, response) => { // Arduino open action
     let user
-    if(request.session.name) {
+    if(request.session.name) { // If user is using browser 
         user = await DataBaseManager.findByName(request.session.name)
-    } else if(request.body.password) {
+    } else if(request.body.password) { // If user is using external methods
         user = await DataBaseManager.login(request.body.password)
     }
-    else {
+    else { // If neither has matching credentials
         response.status(401).send({
             code: 401,
             message: "Unauthorized",
@@ -112,7 +118,7 @@ app.post("/open", async (request, response) => {
         })
         return
     }
-
+    // Then
     if (user === null) {
         response.status(404).send({
             code: 404,
@@ -128,7 +134,7 @@ app.post("/open", async (request, response) => {
         })
         return
     }
-    arduino.openDoor()
+    arduino.openDoor() // There are responses on this. Might want to do something with that
     response.status(200).send({
         code: 200,
         message: "Door opening",
@@ -149,12 +155,12 @@ app.all("*", (request, response) => { // THIS HANDLES USER ATTEMPTING TO ACCESS 
 
 
 
-if(isProd) {
+if(isProd) { 
     const httpsServer = https.createServer(createCredentials(), app);
     httpsServer.listen(80, () => {
         console.log('HTTP Server running on port 80');
     });
-} else {
+} else { // I dont have the certificates on my dev env
     app.listen(port, "0.0.0.0", () => {
         console.log(`API active on :${port}`);
     });
