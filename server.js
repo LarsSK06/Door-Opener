@@ -1,96 +1,96 @@
 const session = require('express-session')
 const SessionStore = require('express-session-sequelize')(session.Store);
-const cookieParser = require('cookie-parser');
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const https = require('https');
 let DataBaseManager = require('./backend/db');
-DataBaseManager = new DataBaseManager
-const ArduinoControl = require("./backend/arduinoController")
-const arduino = new ArduinoControl
+
 const app = express();
 app.disable("x-powered-by");
+
+const port = 4000;
+
+// Classes
+DataBaseManager = new DataBaseManager
+
 
 
 // Middleware. Basically what functions pass while user gets routed
 app.use(session({
-    store: DBManager.store(),
+    store: DataBaseManager.store(),
     secret: "our-secret",
-    resave: true,
+    resave: false,
     saveUninitialized: false,
     cookie: {}
 }))
 app.use(cors());
 app.use(express.json());
-
-
+app.use(express.static("frontend2", {extensions:["html", "js", "css"]}))
 const isProd = false
-
+const arduinoActive = false
 
 // Certificate
-// TODO : Add the actual credentials. Check Certbot
 function createCredentials() {
-    const privateKey = fs.readFileSync('./cert/privkey.pem', 'utf8');
-    const certificate = fs.readFileSync('./cert/cert.pem', 'utf8');
-    
-    return {
-        key: privateKey,
-        cert: certificate,
-    };    
+    const privateKey = fs.readFileSync('./certs/private.key', 'utf8');
+    const certificate = fs.readFileSync('./certs/certificate.crs', 'utf8');
+    return {key: privateKey,cert: certificate};    
 }
 
-
-
+app.get("/", (request, response) => {
+    console.log(request.session.name ? request.session.name : "Someone", "connected")
+    response.sendFile(__dirname+"/frontend2/main.html")
+})
 
 app.post("/login", (request, response) => {
-    DataBaseManager.login(request.body.password).then(user => {
-        if(user === null) {
-            response.status(404).send({
-                code: 404,
-                message: "User not found",
-                abbr: ""
-            });
-            return "This user does not exist"
-        } else if(user.enabled == false) {
-            response.status(401).send({
-                code: 401,
-                message: "User not enabled",
-                abbr: ""
-            });
-            return "User not enabled"
+    DataBaseManager.login(request.body.password).then(login => {
+        if (login === null) {
+            response.status(401).send("User not found")
+            return
         }
-        console.log(user.name, ": IS OPENING")
-        arduino.openDoor()
-
+        request.session.name = login.name
+        response.status(200).redirect("/")
+        return
     })
-    if(request.headers.authorization != process.env.authorization){
-        response.status(401).send({
-            code: 401,
-            message: "Invalid authorization header",
-            abbr: "iah"
-        });
-        return;
-    }
 });
 
-app.all("*", (request, response) => {
-    if(fs.existsSync(`frontend${request.url}`) && request.method == "GET"){
-        response.status(200).sendFile(`${__dirname}/frontend${request.url}`);
-        return;
-    }
-    response.status(404).send({
-        code: 404,
-        message: "Unknown request",
-        abbr: "ur"
-    });
+app.get("/panel", (request, response) => {
+    response.status(200).sendFile("./main.html");
+})
+
+app.get("/form", (request, response) => {
+    response.send({html:(request.session.name ? `
+    <button id="open" autofocus>
+        Open
+    </button>` :`
+    <form id="login-form">
+        <input
+            id="password"
+            type="password"
+            placeholder="Password"
+            autofocus>
+        <p id="log"></p>
+        <button id="submit" type="submit">
+            Submit
+        </button>
+    </form>
+    <h2>
+        Experimental
+    </h2>
+    `)})
+})
+
+
+app.all("*", (request, response) => { // THIS HANDLES USER ATTEMPTING TO ACCESS UNKNOWN PAGES
+    response.status(404).redirect("/")
     console.log("Unknown request:"
         + `\n\tip:\t\t${request.ip}`
         + `\n\turl:\t\t${request.url}`
+        + `\n\tmethod:\t\t${request.method}`
     );
 });
 
-const port = 4000;
+
 
 if(isProd) {
     const httpsServer = https.createServer(createCredentials(), app);
@@ -102,4 +102,3 @@ if(isProd) {
         console.log(`API active on :${port}`);
     });
 }
-
