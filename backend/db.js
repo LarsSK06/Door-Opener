@@ -8,7 +8,8 @@ class DataBaseManager {
     constructor() {
         this.sequelize = new Sequelize({
             dialect: 'sqlite',
-            storage: './backend/database.sqlite', // Replace with the path to your SQLite database file
+            storage: './backend/database.sqlite', // Replace with the path to your SQLite database file,
+            logging:false
         })
         this.initTables() // init all models
         this.sequelize.sync()
@@ -18,6 +19,7 @@ class DataBaseManager {
             .catch((error) => {
                 console.error('Error creating tables:', error)
             })
+
     }
     async createAccount(username, password, enabled = true, isAdmin = false) { // DO NOT USE USER MADE PASSWORDS
         Users.create({
@@ -37,6 +39,13 @@ class DataBaseManager {
             name: name
         }})
     }
+    async getAll() {
+        return await Users.findAll().then(entries => entries.map(({ dataValues: { name, enabled } }) => ({ name, enabled })))
+    }
+    updateEnabled(name, isEnabled) {
+        Users.findOne({where: {name: name}}).then(user => user.update({enabled:isEnabled}))
+    }
+
     store() {
         return new SessionStore({
             db: this.sequelize
