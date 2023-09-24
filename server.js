@@ -3,11 +3,13 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const https = require('https');
+const http = require("http")
 let DataBaseManager = require('./backend/db');
 let ArduinoControl = require("./backend/arduinoController")
-
-
-
+const enableWs = require('express-ws')
+const {WebSocket} = require("ws");
+const Users = require('./models/users');
+const Session = require('./models/Session');
 const port = 4000; // Doesnt really matter for prod
 
 // On/off switches
@@ -15,23 +17,25 @@ const isProd = false
 const arduinoActive = false
 
 // Paths to files
-const filePath = __dirname + "/frontend2" // Public folder
+const filePath = __dirname + "/frontend" // Public folder
 const mainPage = filePath + "/mainPage.html"
 const loginPage = filePath + "/loginPage.html"
-
-
+const panelFilePath = __dirname + "/admin" // Private folder
+const panelPage = panelFilePath + "/panelPage.html"
 
 
 
 // Classes
 DataBaseManager = new DataBaseManager()
-ArduinoControl = new ArduinoControl()
+arduinoActive ? ArduinoControl = new ArduinoControl() : null // If arduino not active its null
 
 // express settings
 const app = express();
 app.disable("x-powered-by");
+enableWs(app)
 
 // Middleware. Basically what functions pass while user gets routed
+
 app.use(session({
     store: DataBaseManager.store(),
     secret: "our-secret",
@@ -41,8 +45,10 @@ app.use(session({
 }))
 app.use(cors());
 app.use(express.json());
-app.use(express.static("frontend2", {extensions:["html", "js", "css"]}))
+app.use(express.static("frontend", {extensions:["html", "js", "css"]})) // Publicly accessable through path. Allows serving files without sendFile on every file
 app.use(isLoggedIn)
+app.use("/panel", [ ensureAuthenticated, express.static("admin", {extensions:["html", "js", "css"]} ) ] )// On this path check if user is admin
+// If above works, should only be accessible by those with admin
 
 // Redirects user
 function isLoggedIn(req, res, next) { 
@@ -55,21 +61,30 @@ function isLoggedIn(req, res, next) {
     next()
 }
 
-
+function ensureAuthenticated(req, res, next) {
+    DataBaseManager.findByName(req.session.name).then(user => {
+        console.log(user.isAdmin)
+        if(!user.isAdmin){
+            console.log("is not admin")
+            res.redirect("/")
+        } 
+        next()
+        
+    })
+}
 
 
 // Certificate for https
 function createCredentials() {
     try {
-    const privateKey = fs.readFileSync('./certs/private.key', 'utf8');
-    const certificate = fs.readFileSync('./certs/certificate.crs', 'utf8');
-    return {key: privateKey,cert: certificate};    
+        const privateKey = fs.readFileSync('./certs/private.key', 'utf8');
+        const certificate = fs.readFileSync('./certs/certificate.crs', 'utf8');
+        return {key: privateKey,cert: certificate};    
     } catch(err) {
         console.error("Error reading certificate files", err)
         return null
     }
 }
-
 
 // Routing
 app.get("/", (request, response) => { // Main page for opening
@@ -105,7 +120,7 @@ app.post("/login", (request, response) => { // Login action
 
 // TODO : Add admin panel
 app.get("/panel", (request, response) => { // Admin panel
-    response.status(200).sendFile(mainPage);
+    response.status(200).sendFile(panelPage); // Display panel page
 })
 
 app.post("/open", async (request, response) => { // Arduino open action
@@ -139,6 +154,8 @@ app.post("/open", async (request, response) => { // Arduino open action
         })
         return
     }
+    console.log("Opening")
+
     arduino.openDoor() // There are responses on this. Might want to do something with that
     response.status(200).send({
         code: 200,
@@ -157,16 +174,70 @@ app.all("*", (request, response) => { // THIS HANDLES USER ATTEMPTING TO ACCESS 
         + `\n\tmethod:\t\t${request.method}`
     );
 });
+app.ws('/echo', (ws, req) => {
+    ws.on('message', msg => {
+        ws.send(msg)
+    })
 
+    ws.on('close', () => {
+        console.log('WebSocket was closed')
+    })
+})
 
-
+let httpServer
 if(isProd) { 
     const httpsServer = https.createServer(createCredentials(), app);
-    httpsServer.listen(80, () => {
-        console.log('HTTP Server running on port 80');
+    httpsServer.listen(443, () => {
+        console.log('HTTP Server running on port 443');
     });
 } else { // I dont have the certificates on my dev env
-    app.listen(port, "0.0.0.0", () => {
+    httpServer = http.createServer(app)
+    httpServer.listen(80, "0.0.0.0", () => {
         console.log(`API active on :${port}`);
     });
+    
+
 }
+const wss = new WebSocket.Server({ noServer: true });
+wss.on('connection', async (ws, request) => {
+    ws.send(JSON.stringify({action: "getAll", users: await DataBaseManager.getAll()}))
+    // Handle WebSocket messages
+    ws.on('message', async (message) => {
+        message = message.toString("utf8")
+       
+      // Process the received message
+      console.log('Received message:', message);
+      try {
+        let messageJson = JSON.parse(message)
+        if(messageJson.action == "changeEnabled") {
+            DataBaseManager.updateEnabled(messageJson.student.name, messageJson.student.isEnabled)
+        }
+    }catch (err) {
+        if(err instanceof SyntaxError) {
+            return
+        }
+        console.error(err)
+    }   
+    });
+  
+    // Handle WebSocket close
+    ws.on('close', () => {
+      console.log('WebSocket connection closed');
+    });
+  });
+httpServer.on('upgrade', (request, socket, head) => {
+    if (request.url === '/panel') {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            console.log("upgrade")
+        wss.emit('connection', ws, request);
+        });
+    } else {
+        socket.destroy();
+    }
+});
+Users.addHook("afterUpdate", (instance) => {
+    const updatedData = instance.get();
+    wss.clients.forEach(client => {
+        client.send(JSON.stringify({action:"updateEnabled", student: {name: updatedData.name, isEnabled:updatedData.enabled}}))
+    })
+}) 
