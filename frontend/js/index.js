@@ -1,12 +1,27 @@
-const ip = "192.168.98.223";
+const ip = "127.0.0.1";
 const port = 4000;
 window.addEventListener("load", () => {
+    document.querySelector("#container").innerHTML += await fetch(`http://${ip}:${port}/a`, {
+        method: "POST",
+        headers: {
+            Authorization: "just-for-security-idfk",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            password: password
+        })
+    });
+    const data = await response.json();
+    console.log(data);
+    log(data["code"] + ": " + data["message"])
+});
     document.querySelector("#submit").addEventListener("click", async () => {
         const password = document.querySelector("#container").querySelector("#password").value;
         const response = await fetch(`http://${ip}:${port}/login`, {
             method: "POST",
             headers: {
-                Authorization: "just-for-security-idfk"
+                Authorization: "just-for-security-idfk",
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 password: password
