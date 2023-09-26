@@ -128,7 +128,7 @@ app.post("/open", async (request, response) => { // Arduino open action
         console.log(request.session.name + " : is opening through website")
     } else if(request.body.password) { // If user is using external methods
         user = await DataBaseManager.login(request.body.password)
-        console.log(request.session.name + " : is opening through POST")
+        console.log(user.name + " : is opening through POST")
     }
     else { // If neither has matching credentials
         response.status(401).send({
