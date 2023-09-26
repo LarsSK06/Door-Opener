@@ -93,8 +93,6 @@ app.get("/", (request, response) => { // Main page for opening
 })
 
 app.get("/login", (request, response) => { // Visual login page
-    if(request.session.name) {
-    }
     response.sendFile(loginPage)
 })
 
@@ -127,8 +125,10 @@ app.post("/open", async (request, response) => { // Arduino open action
     let user
     if(request.session.name) { // If user is using browser 
         user = await DataBaseManager.findByName(request.session.name)
+        console.log(request.session.name + " : is opening through website")
     } else if(request.body.password) { // If user is using external methods
         user = await DataBaseManager.login(request.body.password)
+        console.log(request.session.name + " : is opening through POST")
     }
     else { // If neither has matching credentials
         response.status(401).send({
@@ -154,7 +154,7 @@ app.post("/open", async (request, response) => { // Arduino open action
         })
         return
     }
-    console.log("Opening")
+    
 
     arduino.openDoor() // There are responses on this. Might want to do something with that
     response.status(200).send({
@@ -174,25 +174,17 @@ app.all("*", (request, response) => { // THIS HANDLES USER ATTEMPTING TO ACCESS 
         + `\n\tmethod:\t\t${request.method}`
     );
 });
-app.ws('/echo', (ws, req) => {
-    ws.on('message', msg => {
-        ws.send(msg)
-    })
 
-    ws.on('close', () => {
-        console.log('WebSocket was closed')
-    })
-})
 
-let httpServer
+let httpsServer
 if(isProd) { 
-    const httpsServer = https.createServer(createCredentials(), app);
+    httpsServer = https.createServer(createCredentials(), app);
     httpsServer.listen(443, () => {
         console.log('HTTP Server running on port 443');
     });
 } else { // I dont have the certificates on my dev env
-    httpServer = http.createServer(app)
-    httpServer.listen(80, "0.0.0.0", () => {
+    httpsServer = http.createServer(app)
+    httpsServer.listen(80, "0.0.0.0", () => {
         console.log(`API active on :${port}`);
     });
     
@@ -225,7 +217,7 @@ wss.on('connection', async (ws, request) => {
       console.log('WebSocket connection closed');
     });
   });
-httpServer.on('upgrade', (request, socket, head) => {
+httpsServer.on('upgrade', (request, socket, head) => {
     if (request.url === '/panel') {
         wss.handleUpgrade(request, socket, head, (ws) => {
             console.log("upgrade")
