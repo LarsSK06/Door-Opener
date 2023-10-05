@@ -93,9 +93,10 @@ body{
 
 #container{
     width: 300px;
-    height: 400px;
+    height: auto;
     margin: 0 auto;
     display: flex;
+    aspect-ratio: .75;
     justify-content: space-between;
     align-items: center;
     flex-flow: column wrap;
@@ -189,4 +190,17 @@ body{
 
 #container #open {
     margin:auto;
+}
+
+
+/* Most half-ass shit I've ever done, but it works ig */
+@media screen and (max-width: 1500px){
+    #container{
+        scale: 2;
+    }
+}
+@media screen and (max-width: 1200px){
+    #container{
+        scale: 2.5;
+    }
 }
