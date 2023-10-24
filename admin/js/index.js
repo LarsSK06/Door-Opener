@@ -24,7 +24,14 @@ class Student {
     }
 }
 
-
+function addToLog(logUser) {
+    const timeLog = document.querySelector("#time-log")
+    const logText = document.createElement("div")
+    logText.setAttribute("class", "timelog-container")
+   
+    logText.innerHTML =  `<p>${logUser.name}</p><p>${logUser.method}</p><p>${logUser.createdAt}</p>`
+    timeLog.appendChild(logText)
+}
 
 
 const socketProtocol = (window.location.protocol === 'https:' ? 'wss:' : 'ws:')
@@ -44,9 +51,15 @@ socket.onmessage = e => {
             student.createBox()
             student.attachEvent()
         })
+        e.timeLog.forEach(time => {
+            addToLog(time)
+        })
     }
     if(e.action == "updateEnabled") {
         document.querySelector(`#${e.student.name}-check`).checked = e.student.isEnabled
+    }
+    if(e.action == "OpenedDoor") {
+        document.querySelector()
     }
 }
 
