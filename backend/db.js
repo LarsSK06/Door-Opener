@@ -44,7 +44,7 @@ class DataBaseManager {
         return await Users.findAll().then(entries => entries.map(({ dataValues: { name, enabled } }) => ({ name, enabled })))
     }
     async getTimeLog(){
-        return await OpenedDoor.findAll({order: [["createdAt", "DESC"]]}).then(entries => entries.map(({ dataValues: { name, method, createdAt } }) => ({ name, method, createdAt })))
+        return await OpenedDoor.findAll().then(entries => entries.map(({ dataValues: { name, method, createdAt } }) => ({ name, method, createdAt })))
     }
     updateEnabled(name, isEnabled) {
         Users.findOne({where: {name: name}}).then(user => user.update({enabled:isEnabled}))
