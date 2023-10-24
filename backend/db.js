@@ -3,7 +3,8 @@ const expressSession = require('express-session');
 const SessionStore = require('express-session-sequelize')(expressSession.Store);
 
 const Users = require('../models/users')
-const Session = require("../models/Session.js")
+const Session = require("../models/Session.js");
+const OpenedDoor = require('../models/opened');
 class DataBaseManager {
     constructor() {
         this.sequelize = new Sequelize({
@@ -39,8 +40,11 @@ class DataBaseManager {
             name: name
         }})
     }
-    async getAll() {
+    async getAllUsers() {
         return await Users.findAll().then(entries => entries.map(({ dataValues: { name, enabled } }) => ({ name, enabled })))
+    }
+    async getTimeLog(){
+        return await OpenedDoor.findAll().then(entries => entries.map(({ dataValues: { name, method, createdAt } }) => ({ name, method, createdAt })))
     }
     updateEnabled(name, isEnabled) {
         Users.findOne({where: {name: name}}).then(user => user.update({enabled:isEnabled}))
@@ -56,6 +60,9 @@ class DataBaseManager {
         Users.init(this.sequelize)
         Session.init(this.sequelize)
         Session.sync(this.db)
+        OpenedDoor.init(this.sequelize)
+        OpenedDoor.sync(this.sequelize)
+
     }  
 }
 

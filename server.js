@@ -9,7 +9,7 @@ let ArduinoControl = require("./backend/arduinoController")
 const enableWs = require('express-ws')
 const {WebSocket} = require("ws");
 const Users = require('./models/users');
-const Session = require('./models/Session');
+const OpenedDoor = require('./models/opened');
 const port = 4000; // Doesnt really matter for prod
 
 // On/off switches
@@ -53,6 +53,7 @@ app.use("/panel", [ ensureAuthenticated, express.static("admin", {extensions:["h
 // Redirects user
 function isLoggedIn(req, res, next) { 
     if(req.url == "/login" && req.session.name) { // If logged in and trying to access /login
+        
         res.redirect("/")
     }
     if(req.session.name == undefined && (req.url !== "/login")) { // If not logged in and trying to access any other page
@@ -63,7 +64,6 @@ function isLoggedIn(req, res, next) {
 
 function ensureAuthenticated(req, res, next) {
     DataBaseManager.findByName(req.session.name).then(user => {
-        console.log(user.isAdmin)
         if(!user.isAdmin){
             console.log("is not admin")
             res.redirect("/")
@@ -125,10 +125,18 @@ app.post("/open", async (request, response) => { // Arduino open action
     let user
     if(request.session.name) { // If user is using browser 
         user = await DataBaseManager.findByName(request.session.name)
+        await OpenedDoor.create({
+            name:user.request.session.name,
+            method:"Website"
+        })
         console.log(request.session.name + " : is opening through website")
     } else if(request.body) { // If user is using external methods
         user = await DataBaseManager.login(request.body.password)
         console.log(user.name + " : is opening through POST")
+        await OpenedDoor.create({
+            name:user.name,
+            method:"POST"
+        })
     }
     else { // If neither has matching credentials
         response.status(401).send({
@@ -192,7 +200,7 @@ if(isProd) {
 }
 const wss = new WebSocket.Server({ noServer: true });
 wss.on('connection', async (ws, request) => {
-    ws.send(JSON.stringify({action: "getAll", users: await DataBaseManager.getAll()}))
+    ws.send(JSON.stringify({action: "getAll", users: await DataBaseManager.getAllUsers(), timeLog:await DataBaseManager.getTimeLog()}))
     // Handle WebSocket messages
     ws.on('message', async (message) => {
         message = message.toString("utf8")
@@ -220,7 +228,6 @@ wss.on('connection', async (ws, request) => {
 httpsServer.on('upgrade', (request, socket, head) => {
     if (request.url === '/panel') {
         wss.handleUpgrade(request, socket, head, (ws) => {
-            console.log("upgrade")
         wss.emit('connection', ws, request);
         });
     } else {
@@ -230,6 +237,16 @@ httpsServer.on('upgrade', (request, socket, head) => {
 Users.addHook("afterUpdate", (instance) => {
     const updatedData = instance.get();
     wss.clients.forEach(client => {
+        OpenedDoor.create({
+            name:updatedData.name,
+            method:"Website"
+        })
         client.send(JSON.stringify({action:"updateEnabled", student: {name: updatedData.name, isEnabled:updatedData.enabled}}))
+    })
+}) 
+OpenedDoor.addHook("afterCreate", (instance) => {
+    const updatedData = instance.get();
+    wss.clients.forEach(client => {
+        client.send(JSON.stringify({action:"OpenedDoor", student: {name: updatedData.name, method:updatedData.method, createdAt: updatedData.createdAt}}))
     })
 }) 

@@ -1,4 +1,5 @@
   
+
 class Student {
     constructor(name, enabled) {
         this.parent = document.querySelector("#page-container")
@@ -24,6 +25,18 @@ class Student {
     }
 }
 
+function addToLog(logUser) {
+    const timeLog = document.querySelector("#time-log")
+    const logText = document.createElement("div")
+    logText.setAttribute("class", "timelog-container")
+    logText.innerHTML =  `<p class="timelog-name">${logUser.name}</p><p class="timelog-method">${logUser.method}</p><p class="timelog-time">${new Date(logUser.createdAt).toLocaleString("no-NO", { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12:false }).replaceAll(".", "/")}</p>`
+    timeLog.appendChild(logText)
+    timeLogScrollHandler(timeLog)
+}
+
+function timeLogScrollHandler(timeLog) { // Takes to top 
+    timeLog.scrollTop = -timeLog.scrollHeight;
+}
 
 
 
@@ -44,9 +57,16 @@ socket.onmessage = e => {
             student.createBox()
             student.attachEvent()
         })
+        e.timeLog.forEach(time => {
+            console.log(time)
+            addToLog(time)
+        })
     }
     if(e.action == "updateEnabled") {
         document.querySelector(`#${e.student.name}-check`).checked = e.student.isEnabled
+    }
+    if(e.action == "OpenedDoor") {
+       addToLog(e.student)
     }
 }
 
