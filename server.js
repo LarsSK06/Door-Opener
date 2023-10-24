@@ -53,6 +53,7 @@ app.use("/panel", [ ensureAuthenticated, express.static("admin", {extensions:["h
 // Redirects user
 function isLoggedIn(req, res, next) { 
     if(req.url == "/login" && req.session.name) { // If logged in and trying to access /login
+        
         res.redirect("/")
     }
     if(req.session.name == undefined && (req.url !== "/login")) { // If not logged in and trying to access any other page
@@ -63,7 +64,6 @@ function isLoggedIn(req, res, next) {
 
 function ensureAuthenticated(req, res, next) {
     DataBaseManager.findByName(req.session.name).then(user => {
-        console.log(user.isAdmin)
         if(!user.isAdmin){
             console.log("is not admin")
             res.redirect("/")
@@ -89,10 +89,6 @@ function createCredentials() {
 // Routing
 app.get("/", (request, response) => { // Main page for opening
     console.log(request.session.name ? request.session.name : "Someone", "connected")
-    OpenedDoor.create({
-        name:request.session.name,
-        method:"POST"
-    })
     response.sendFile(mainPage)
 })
 
@@ -232,7 +228,6 @@ wss.on('connection', async (ws, request) => {
 httpsServer.on('upgrade', (request, socket, head) => {
     if (request.url === '/panel') {
         wss.handleUpgrade(request, socket, head, (ws) => {
-            console.log("upgrade")
         wss.emit('connection', ws, request);
         });
     } else {
@@ -242,12 +237,16 @@ httpsServer.on('upgrade', (request, socket, head) => {
 Users.addHook("afterUpdate", (instance) => {
     const updatedData = instance.get();
     wss.clients.forEach(client => {
+        OpenedDoor.create({
+            name:updatedData.name,
+            method:"Website"
+        })
         client.send(JSON.stringify({action:"updateEnabled", student: {name: updatedData.name, isEnabled:updatedData.enabled}}))
     })
 }) 
-OpenedDoor.addHook("afterUpdate", (instance) => {
+OpenedDoor.addHook("afterCreate", (instance) => {
     const updatedData = instance.get();
     wss.clients.forEach(client => {
-        client.send(JSON.stringify({action:"updateEnabled", student: {name: updatedData.name, method:updatedData.method, at: updatedData.createdAt}}))
+        client.send(JSON.stringify({action:"OpenedDoor", student: {name: updatedData.name, method:updatedData.method, createdAt: updatedData.createdAt}}))
     })
 }) 
