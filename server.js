@@ -35,7 +35,7 @@ app.disable("x-powered-by");
 enableWs(app)
 
 // Middleware. Basically what functions pass while user gets routed
-
+app.use("favicon.ico", express.static("images/favicon.ico"))
 app.use(session({
     store: DataBaseManager.store(),
     secret: "our-secret",
@@ -116,7 +116,7 @@ app.post("/login", (request, response) => { // Login action
     })
 });
 
-// TODO : Add admin panel
+// TODO : Add logViewer to adminPage
 app.get("/panel", (request, response) => { // Admin panel
     response.status(200).sendFile(panelPage); // Display panel page
 })
@@ -126,7 +126,7 @@ app.post("/open", async (request, response) => { // Arduino open action
     if(request.session.name) { // If user is using browser 
         user = await DataBaseManager.findByName(request.session.name)
         console.log(request.session.name + " : is opening through website")
-    } else if(request.body.password) { // If user is using external methods
+    } else if(request.body) { // If user is using external methods
         user = await DataBaseManager.login(request.body.password)
         console.log(user.name + " : is opening through POST")
     }

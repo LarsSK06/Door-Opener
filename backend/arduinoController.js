@@ -7,7 +7,7 @@ class ArduinoControl extends Board {
         this.on('ready', this.ready.bind(this))
         this.servo = null
         this.servoReady = false
-        this.servoToClick = 130
+        this.servoToOpen = 110
         this.servoToReset = 70
     }
     ready() {
@@ -21,7 +21,7 @@ class ArduinoControl extends Board {
         else if (this.servoReady === false) 
             return 'Servo is already moving'
         this.servoReady = false
-        this.servo.to(this.servoToClick)
+        this.servo.to(this.servoToOpen)
         setTimeout(() => { // This is non blocking
             this.servo.to(this.servoToReset) // All this executes after time. Code below continues before this is done
             this.cooldown()
