@@ -9,7 +9,7 @@ let ArduinoControl = require("./backend/arduinoController")
 const enableWs = require('express-ws')
 const {WebSocket} = require("ws");
 const Users = require('./models/users');
-const Session = require('./models/Session');
+const OpenedDoor = require('./models/opened');
 const port = 4000; // Doesnt really matter for prod
 
 // On/off switches
@@ -89,6 +89,10 @@ function createCredentials() {
 // Routing
 app.get("/", (request, response) => { // Main page for opening
     console.log(request.session.name ? request.session.name : "Someone", "connected")
+    OpenedDoor.create({
+        name:request.session.name,
+        method:"POST"
+    })
     response.sendFile(mainPage)
 })
 
@@ -125,10 +129,18 @@ app.post("/open", async (request, response) => { // Arduino open action
     let user
     if(request.session.name) { // If user is using browser 
         user = await DataBaseManager.findByName(request.session.name)
+        await OpenedDoor.create({
+            name:user.request.session.name,
+            method:"Website"
+        })
         console.log(request.session.name + " : is opening through website")
     } else if(request.body) { // If user is using external methods
         user = await DataBaseManager.login(request.body.password)
         console.log(user.name + " : is opening through POST")
+        await OpenedDoor.create({
+            name:user.name,
+            method:"POST"
+        })
     }
     else { // If neither has matching credentials
         response.status(401).send({
@@ -192,7 +204,7 @@ if(isProd) {
 }
 const wss = new WebSocket.Server({ noServer: true });
 wss.on('connection', async (ws, request) => {
-    ws.send(JSON.stringify({action: "getAll", users: await DataBaseManager.getAll()}))
+    ws.send(JSON.stringify({action: "getAll", users: await DataBaseManager.getAllUsers(), timeLog:await DataBaseManager.getTimeLog()}))
     // Handle WebSocket messages
     ws.on('message', async (message) => {
         message = message.toString("utf8")
@@ -231,5 +243,11 @@ Users.addHook("afterUpdate", (instance) => {
     const updatedData = instance.get();
     wss.clients.forEach(client => {
         client.send(JSON.stringify({action:"updateEnabled", student: {name: updatedData.name, isEnabled:updatedData.enabled}}))
+    })
+}) 
+OpenedDoor.addHook("afterUpdate", (instance) => {
+    const updatedData = instance.get();
+    wss.clients.forEach(client => {
+        client.send(JSON.stringify({action:"updateEnabled", student: {name: updatedData.name, method:updatedData.method, at: updatedData.createdAt}}))
     })
 }) 

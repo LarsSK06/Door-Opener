@@ -182,3 +182,14 @@ body{
   left: 10%;
 }
  /* CHECKBUTTON END */
+
+
+ #time-log {
+  display: block;
+  position: absolute;
+  left:0;
+  border:#ff4242 solid 2px;
+  width:fit-content;
+  height:99vh;
+  overflow: scroll;
+ }
